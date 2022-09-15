@@ -1,0 +1,18 @@
+{
+  "name": "my_blog_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "hope tesfa",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^4.3.1",
+    "colors": "^1.4.0",
+    "express": "^4.18.1",
+    "nodemon": "^2.0.19"
+  }
+}
