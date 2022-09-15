@@ -1,63 +1,87 @@
 const { PrismaClient } = require('@prisma/client')
 const { makeExecutableSchema } = require('@graphql-tools/schema')
-
 const prisma = new PrismaClient()
 
 
 const typeDefs = `
-  type Query {
-    getAllUsers: [User!]!
-    getUser(id: ID!): User
-  }
 
-  type User {
-    id: ID!
-    name: String!
-    email: String!
-  }
+    type User {
+        id: ID!
+        name: String!
+        email: String!
+        posts: [Post!]!
+    }
 
-  type Mutation {
-    createUser(name: String!, email: String!): User
-  }
+    type Post {
+        id: ID!
+        title: String!
+        content: String!
+        published: Boolean!
+        author: User!
+    }
 
-  schema {
-    query: Query
-    mutation: Mutation
-  }
-`;
+    type Query {
+        users: [User!]!
+        posts: [Post!]!
+        user(id: ID!): User
+        post(id: ID!): Post
+    }
+
+    type Mutation {
+        createUser
+        createPost
+    }
+
+    `;
 
 const resolvers = {
     Query: {
-        getAllUsers: async () => {
+        users: async () => {
             return await prisma.user.findMany()
         }
         ,
-        getUser: async ({ id }) => {
+        posts: async () => {
+            return await prisma.post.findMany()
+        }
+        ,
+        user: async (parent, args) => {
             return await prisma.user.findOne({
                 where: {
-                    id: id
+                    id: args.id
                 }
             })
-        }
-    },
+        },
+        post: async (parent, args) => {
+            return await prisma.post.findOne({
+                where: {
+                    id: args.id
+                }
+            })
+        },
+    }
+    ,
     Mutation: {
-        createUser: async ({ name, email }) => {
+        createUser: async (parent, args) => {
             return await prisma.user.create({
                 data: {
-                    name: name,
-                    email: email
+                    name: args.name,
+                    email: args.email
+                }
+            })
+        },
+        createPost: async (parent, args) => {
+            return await prisma.post.create({
+                data: {
+                    title: args.title,
+                    content: args.content,
+                    published: args.published,
+                    author: {
+                        connect: {
+                            id: args.authorId
+                        }
+                    }
                 }
             })
         }
     }
-
 }
-const schema = makeExecutableSchema({
-    typeDefs,
-    resolvers
-})
-
-module.exports = {
-    schema
-}
-
