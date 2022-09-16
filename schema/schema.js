@@ -1,87 +1,156 @@
 const { PrismaClient } = require('@prisma/client')
-const { makeExecutableSchema } = require('@graphql-tools/schema')
-const prisma = new PrismaClient()
+const {
+    GraphQLObjectType,
+    GraphQLID,
+    GraphQLString,
+    GraphQLSchema,
+    GraphQLList,
+    GraphQLNonNull,
+    GraphQLBoolean
+} = require('graphql')
 
+const prisma = new PrismaClient();
 
-const typeDefs = `
+const UserType = new GraphQLObjectType({
+    name: 'User',
+    fields: () => ({
+        id: { type: GraphQLString },
+        name: { type: GraphQLString },
+        email: { type: GraphQLString },
+    })
+});
 
-    type User {
-        id: ID!
-        name: String!
-        email: String!
-        posts: [Post!]!
-    }
-
-    type Post {
-        id: ID!
-        title: String!
-        content: String!
-        published: Boolean!
-        author: User!
-    }
-
-    type Query {
-        users: [User!]!
-        posts: [Post!]!
-        user(id: ID!): User
-        post(id: ID!): Post
-    }
-
-    type Mutation {
-        createUser
-        createPost
-    }
-
-    `;
-
-const resolvers = {
-    Query: {
-        users: async () => {
-            return await prisma.user.findMany()
+const PostType = new GraphQLObjectType({
+    name: 'Post',
+    fields: () => ({
+        id: { type: GraphQLString },
+        title: { type: GraphQLString },
+        content: { type: GraphQLString },
+        published: { type: GraphQLBoolean },
+        author: {
+            type: UserType,
+            resolve(parent, args) {
+                try {
+                    return prisma.post.findOne({
+                        where: { id: parent.id }
+                    }).author();
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
         }
-        ,
-        posts: async () => {
-            return await prisma.post.findMany()
+    })
+})
+
+const RootQuery = new GraphQLObjectType({
+    name: 'RootQueryType',
+    fields: {
+        users: {
+            type: new GraphQLList(UserType),
+            resolve(parent, args) {
+                try {
+                    return prisma.user.findMany();
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
+        },
+        user: {
+            type: UserType,
+            args: { id: { type: GraphQLID } },
+            resolve(parent, args) {
+                try {
+                    return prisma.user.findOne({
+                        where: { id: args.id }
+                    });
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
+        },
+
+        posts: {
+            type: new GraphQLList(PostType),
+            resolve(parent, args) {
+                try {
+                    return prisma.post.findMany();
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
+        },
+        post: {
+            type: PostType,
+            args: { id: { type: GraphQLID } },
+            resolve(parent, args) {
+                try {
+                    return prisma.post.findOne({
+                        where: { id: args.id }
+                    });
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
         }
-        ,
-        user: async (parent, args) => {
-            return await prisma.user.findOne({
-                where: {
-                    id: args.id
-                }
-            })
-        },
-        post: async (parent, args) => {
-            return await prisma.post.findOne({
-                where: {
-                    id: args.id
-                }
-            })
-        },
     }
-    ,
-    Mutation: {
-        createUser: async (parent, args) => {
-            return await prisma.user.create({
-                data: {
-                    name: args.name,
-                    email: args.email
+});
+
+const mutation = new GraphQLObjectType({
+    name: 'Mutation',
+    fields: {
+        
+        createUser: {
+            type: UserType,
+            args: {
+                name: { type: new GraphQLNonNull(GraphQLString) },
+                email: { type: new GraphQLNonNull(GraphQLString) },
+            },
+            resolve(parent, args) {
+                try {
+                    return prisma.user.create({
+                        data: {
+                            name: args.name,
+                            email: args.email
+                        },
+                    })
+                } catch (error) {
+                    return JSON.stringify(error);
                 }
-            })
+            }
         },
-        createPost: async (parent, args) => {
-            return await prisma.post.create({
-                data: {
-                    title: args.title,
-                    content: args.content,
-                    published: args.published,
-                    author: {
-                        connect: {
-                            id: args.authorId
+
+        createPosts: {
+            type: PostType,
+            args: {
+                title: { type: new GraphQLNonNull(GraphQLString) },
+                content: { type: new GraphQLNonNull(GraphQLString) },
+                published: { type: new GraphQLNonNull(GraphQLBoolean) },
+                author: { type: new GraphQLNonNull(GraphQLID) }
+            },
+            resolve(parent, args) {
+                try {
+                    return prisma.post.create({
+                        data: {
+                            title: args.title,
+                            content: args.content,
+                            published: args.published,
+                            author: {
+                                connect: {
+                                    id: args.author
+                                }
+                            }
                         }
-                    }
+                    })
+                } catch (error) {
+                    return JSON.stringify(error);
                 }
-            })
+            }
         }
     }
-}
+});
+
+
+module.exports = new GraphQLSchema({
+    query: RootQuery,
+    mutation
+})
