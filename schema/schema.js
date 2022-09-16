@@ -60,7 +60,7 @@ const RootQuery = new GraphQLObjectType({
             args: { id: { type: GraphQLID } },
             resolve(parent, args) {
                 try {
-                    return prisma.user.findOne({
+                    return prisma.user.findUnique({
                         where: { id: args.id }
                     });
                 } catch (error) {
@@ -84,7 +84,7 @@ const RootQuery = new GraphQLObjectType({
             args: { id: { type: GraphQLID } },
             resolve(parent, args) {
                 try {
-                    return prisma.post.findOne({
+                    return prisma.post.findUnique({
                         where: { id: args.id }
                     });
                 } catch (error) {
@@ -98,7 +98,7 @@ const RootQuery = new GraphQLObjectType({
 const mutation = new GraphQLObjectType({
     name: 'Mutation',
     fields: {
-        
+
         createUser: {
             type: UserType,
             args: {
@@ -112,6 +112,44 @@ const mutation = new GraphQLObjectType({
                             name: args.name,
                             email: args.email
                         },
+                    })
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
+        },
+
+        updateUser: {
+            type: UserType,
+            args: {
+                id: { type: new GraphQLNonNull(GraphQLID) },
+                name: { type: GraphQLString },
+                email: { type: GraphQLString },
+            },
+            resolve(parent, args) {
+                try {
+                    return prisma.user.update({
+                        where: { id: args.id },
+                        data: {
+                            name: args.name,
+                            email: args.email
+                        }
+                    })
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
+        },
+
+        deleteUser: {
+            type: UserType,
+            args: {
+                id: { type: new GraphQLNonNull(GraphQLID) }
+            },
+            resolve(parent, args) {
+                try {
+                    return prisma.user.delete({
+                        where: { id: args.id }
                     })
                 } catch (error) {
                     return JSON.stringify(error);
@@ -145,7 +183,54 @@ const mutation = new GraphQLObjectType({
                     return JSON.stringify(error);
                 }
             }
-        }
+        },
+
+        updatePosts: {
+            type: PostType,
+            args: {
+                id: { type: new GraphQLNonNull(GraphQLID) },
+                title: { type: GraphQLString },
+                content: { type: GraphQLString },
+                published: { type: GraphQLBoolean },
+                author: { type: GraphQLID }
+            },
+            resolve(parent, args) {
+                try {
+                    return prisma.post.update({
+                        where: { id: args.id },
+                        data: {
+                            title: args.title,
+                            content: args.content,
+                            published: args.published,
+                            author: {
+                                connect: {
+                                    id: args.author
+                                }
+                            }
+                        }
+                    })
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
+        },
+
+        deletePosts: {
+            type: PostType,
+            args: {
+                id: { type: new GraphQLNonNull(GraphQLID) }
+            },
+            resolve(parent, args) {
+                try {
+                    return prisma.post.delete({
+                        where: { id: args.id }
+                    })
+                } catch (error) {
+                    return JSON.stringify(error);
+                }
+            }
+        },
+
     }
 });
 
