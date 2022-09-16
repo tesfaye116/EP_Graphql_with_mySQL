@@ -31,7 +31,7 @@ const PostType = new GraphQLObjectType({
             type: UserType,
             resolve(parent, args) {
                 try {
-                    return prisma.post.findOne({
+                    return prisma.post.findUnique({
                         where: { id: parent.id }
                     }).author();
                 } catch (error) {
@@ -55,6 +55,7 @@ const RootQuery = new GraphQLObjectType({
                 }
             }
         },
+
         user: {
             type: UserType,
             args: { id: { type: GraphQLID } },
@@ -73,12 +74,17 @@ const RootQuery = new GraphQLObjectType({
             type: new GraphQLList(PostType),
             resolve(parent, args) {
                 try {
-                    return prisma.post.findMany();
+                    return prisma.post.findMany({
+                        include: {
+                            author: true
+                        }
+                    })
                 } catch (error) {
                     return JSON.stringify(error);
                 }
             }
         },
+
         post: {
             type: PostType,
             args: { id: { type: GraphQLID } },
