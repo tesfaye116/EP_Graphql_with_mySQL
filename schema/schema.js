@@ -49,7 +49,11 @@ const RootQuery = new GraphQLObjectType({
             type: new GraphQLList(UserType),
             resolve(parent, args) {
                 try {
-                    return prisma.user.findMany();
+                    return prisma.user.findMany({
+                        orderBy: {
+                            name: 'asc'
+                        }
+                    });
                 } catch (error) {
                     return JSON.stringify(error);
                 }
